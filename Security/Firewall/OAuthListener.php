@@ -61,12 +61,14 @@ class OAuthListener implements ListenerInterface
      */
     public function handle(GetResponseEvent $event)
     {
-        if (null === $oauthToken = $this->serverService->getBearerToken($event->getRequest(), true)) {
-            return;
+        if (null !== $this->serverService->getBearerToken($event->getRequest(), true)) {
+            $token = new OAuthToken();
+            $token->setToken($this->serverService->getBearerToken($event->getRequest(), true));
+        } else if (null !== $this->securityContext->getToken() && true === $this->securityContext->getToken()->isAuthenticated()) {
+            $token = $this->securityContext->getToken();
+        } else  {
+            return ;
         }
-
-        $token = new OAuthToken();
-        $token->setToken($oauthToken);
 
         try {
             $returnValue = $this->authenticationManager->authenticate($token);

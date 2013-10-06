@@ -11,6 +11,7 @@
 
 namespace FOS\OAuthServerBundle\Security\Authentication\Token;
 
+use FOS\OAuthServerBundle\Model\ClientInterface;
 use Symfony\Component\Security\Core\Authentication\Token\AbstractToken;
 
 /**
@@ -20,23 +21,53 @@ use Symfony\Component\Security\Core\Authentication\Token\AbstractToken;
  */
 class OAuthToken extends AbstractToken
 {
-    /**
-     * @var string
-     */
-    protected $token;
+    const TOKEN_ATTRIBUTE_NAME = '__oauth_token';
 
+    /**
+     * @var ClientInterface|null
+     */
+    private $client = null;
+
+    /**
+     * Store authorization token
+     *
+     * @param string $token
+     */
     public function setToken($token)
     {
-        $this->token = $token;
+        // token string MUST be serializable, storing it as an attribute is the easiest way to achieve that
+        $this->setAttribute(self::TOKEN_ATTRIBUTE_NAME, $token);
     }
 
+    /**
+     * Retrieve authorization token
+     *
+     * @return string|null
+     */
     public function getToken()
     {
-        return $this->token;
+        try {
+            return $this->getAttribute(self::TOKEN_ATTRIBUTE_NAME);
+        } catch (\InvalidArgumentException $e) {
+            return null;
+        }
     }
 
     public function getCredentials()
     {
-        return $this->token;
+        return $this->getToken();
+    }
+
+    public function setClient(ClientInterface $client)
+    {
+        $this->client = $client;
+    }
+
+    /**
+     * @return ClientInterface|null
+     */
+    public function getClient()
+    {
+        return $this->client;
     }
 }

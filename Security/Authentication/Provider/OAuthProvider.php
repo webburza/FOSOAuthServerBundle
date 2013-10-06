@@ -82,8 +82,11 @@ class OAuthProvider implements AuthenticationProviderInterface
                 $token = new OAuthToken($roles);
                 $token->setAuthenticated(true);
                 $token->setToken($tokenString);
+                $token->setClient($accessToken->getClient());
 
                 if (null !== $user) {
+
+                    // user refreshing mechanism is missing?!?!
 
                     try {
                         $this->userChecker->checkPostAuth($user);
@@ -106,7 +109,7 @@ class OAuthProvider implements AuthenticationProviderInterface
                 // Symfony 2.1
                 throw new AuthenticationException('OAuth2 authentication failed', null, 0, $e);
             }
-            
+
             throw new AuthenticationException('OAuth2 authentication failed', 0, $e);
         }
 
