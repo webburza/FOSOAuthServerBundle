@@ -11,6 +11,7 @@
 
 namespace FOS\OAuthServerBundle\Security\Authentication\Provider;
 
+use FOS\OAuthServerBundle\Model\AccessTokenInterface;
 use FOS\OAuthServerBundle\Security\Authentication\Token\OAuthToken;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\Security\Core\Authentication\Provider\AuthenticationProviderInterface;
@@ -32,21 +33,22 @@ use OAuth2\OAuth2AuthenticateException;
 class OAuthProvider implements AuthenticationProviderInterface
 {
     /**
-     * @var \Symfony\Component\Security\Core\User\UserProviderInterface
+     * @var UserProviderInterface
      */
     protected $userProvider;
     /**
-     * @var \OAuth2\OAuth2
+     * @var OAuth2
      */
     protected $serverService;
     /**
-     * @var \Symfony\Component\Security\Core\User\UserChecker
+     * @var UserCheckerInterface
      */
     protected $userChecker;
 
     /**
-     * @param \Symfony\Component\Security\Core\User\UserProviderInterface $userProvider      The user provider.
-     * @param \OAuth2\OAuth2 $serverService The OAuth2 server service.
+     * @param UserProviderInterface $userProvider      The user provider.
+     * @param OAuth2 $serverService The OAuth2 server service.
+     * @param UserCheckerInterface $userChecker
      */
     public function __construct(UserProviderInterface $userProvider, OAuth2 $serverService, UserCheckerInterface $userChecker)
     {
@@ -64,12 +66,20 @@ class OAuthProvider implements AuthenticationProviderInterface
             return null;
         }
 
+        /* @var $token OAuthToken */
         try {
             $tokenString = $token->getToken();
 
             if ($accessToken = $this->serverService->verifyAccessToken($tokenString)) {
+                /* @var $accessToken AccessTokenInterface */
                 $scope = $accessToken->getScope();
                 $user  = $accessToken->getUser();
+
+                if (true === $token->isAuthenticated()) { // ContextListener retrieved token from the session and already refreshed user object
+                    $user = $token->getUser(); // we don't need to refresh user again, so we just pull user object from the authenticated token
+                } else {
+                    $user = $this->userProvider->refreshUser($user); // let's refresh user
+                }
 
                 $roles = (null !== $user) ? $user->getRoles() : array();
 
